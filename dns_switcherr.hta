@@ -1,0 +1,1098 @@
+<html>
+<head>
+<title>DNS Switcher</title>
+<HTA:APPLICATION 
+  ID="DNSApp"
+  APPLICATIONNAME="DNS Switcher"
+  BORDER="dialog"
+  CAPTION="yes"
+  SHOWINTASKBAR="yes"
+  SINGLEINSTANCE="yes"
+  SYSMENU="yes"
+  WINDOWSTATE="normal"
+  WIDTH="420"
+  HEIGHT="600"
+/>
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #f0f4f8;
+    padding: 16px;
+    color: #1a202c;
+    overflow: auto;
+    height: 100vh;
+}
+
+.container {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 380px;
+    margin: 0 auto;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 8px;
+}
+
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.status-indicator.connected {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.status-indicator.testing {
+    background: #fef5e7;
+    color: #744210;
+}
+
+.status-indicator.offline {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+.smart-section {
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.smart-button {
+    width: 100%;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.smart-button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.smart-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.smart-description {
+    font-size: 13px;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.network-info {
+    background: #1a202c;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    border: 1px solid #4a5568;
+    flex-shrink: 0;
+}
+
+.info-header {
+    color: #68d391;
+    font-weight: 600;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #4a5568;
+    padding-bottom: 4px;
+}
+
+.info-line {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.info-label {
+    color: #81c784;
+    min-width: 120px;
+}
+
+.info-value {
+    color: #e2e8f0;
+    font-weight: 500;
+    text-align: right;
+}
+
+.info-value.good {
+    color: #68d391;
+}
+
+.info-value.warning {
+    color: #fbd38d;
+}
+
+.info-value.error {
+    color: #fc8181;
+}
+
+.info-value.excellent {
+    color: #68d391;
+}
+
+.content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.dns-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 12px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.dns-grid {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex: 1;
+}
+
+.dns-option {
+    width: 100%;
+    min-height: 60px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+    color: #4a5568;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.dns-option:hover:not(:disabled) {
+    border-color: #4299e1;
+    background: #f7fafc;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.15);
+}
+
+.dns-option.active {
+    background: #e6f3ff;
+    border-color: #4299e1;
+    color: #2b6cb0;
+}
+
+.dns-option.fastest {
+    background: #f0fff4;
+    border-color: #68d391;
+    color: #22543d;
+    position: relative;
+}
+
+.dns-option.fastest::after {
+    content: "FASTEST";
+    position: absolute;
+    top: -8px;
+    right: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #38a169;
+    background: #f0fff4;
+    padding: 2px 6px;
+    border-radius: 8px;
+    border: 1px solid #68d391;
+}
+
+.dns-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dns-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.dns-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.dns-description {
+    font-size: 11px;
+    color: #718096;
+    line-height: 1.3;
+    font-weight: 400;
+}
+
+.latency-info {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 8px;
+    background: #f7fafc;
+    color: #4a5568;
+}
+
+.latency-info.excellent {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.latency-info.good {
+    background: #fef5e7;
+    color: #744210;
+}
+
+.latency-info.poor {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+.latency-info.testing {
+    background: #bee3f8;
+    color: #2b6cb0;
+    animation: pulse 1.5s infinite;
+}
+
+.utility-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+    flex-shrink: 0;
+}
+
+.utility-btn {
+    height: 38px;
+    border: 2px solid #cbd5e0;
+    border-radius: 8px;
+    background: white;
+    color: #4a5568;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.utility-btn:hover:not(:disabled) {
+    background: #4a5568;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.utility-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.feedback {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    padding: 16px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 1000;
+    display: none;
+    animation: slideIn 0.3s ease;
+    max-width: 300px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.feedback.success {
+    background: #c6f6d5;
+    color: #22543d;
+    border: 2px solid #9ae6b4;
+}
+
+.feedback.error {
+    background: #fed7d7;
+    color: #742a2a;
+    border: 2px solid #feb2b2;
+}
+
+.feedback.info {
+    background: #bee3f8;
+    color: #2b6cb0;
+    border: 2px solid #90cdf4;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+</style>
+
+<script language="VBScript">
+
+Dim wifiAdapter, isWorking, currentDNS
+Dim currentIP, gatewayIP, networkLatency, dnsLatencies
+Dim fastestDNS, autoSelectComplete
+
+Sub Window_OnLoad()
+    isWorking = False
+    autoSelectComplete = False
+    networkLatency = 0
+    Set dnsLatencies = CreateObject("Scripting.Dictionary")
+    CheckAdminRights
+End Sub
+
+Sub CheckAdminRights()
+    On Error Resume Next
+    If Not IsAdmin() Then
+        result = MsgBox("Administrator privileges required to modify DNS settings." & vbCrLf & vbCrLf & "Restart as Administrator?", vbYesNo + vbQuestion, "Admin Required")
+        If result = vbYes Then
+            RunAsAdmin
+        Else
+            window.close
+        End If
+        Exit Sub
+    End If
+    StartApplication
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Function IsAdmin()
+    On Error Resume Next
+    Set shell = CreateObject("WScript.Shell")
+    result = shell.Run("cmd /c net session >nul 2>&1", 0, True)
+    IsAdmin = (result = 0)
+    If Err.Number <> 0 Then
+        IsAdmin = False
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Function
+
+Sub RunAsAdmin()
+    On Error Resume Next
+    Set shell = CreateObject("Shell.Application")
+    appPath = Replace(location.href, "file:///", "")
+    appPath = Replace(appPath, "/", "\")
+    shell.ShellExecute "mshta.exe", """" & appPath & """", "", "runas", 1
+    window.close
+    On Error GoTo 0
+End Sub
+
+Sub StartApplication()
+    On Error Resume Next
+    ShowStatus "Detecting WiFi...", "testing"
+    FindWiFiAdapter
+    
+    If wifiAdapter <> "" Then
+        UpdateNetworkInfo
+        UpdateCurrentDNS
+        TestNetworkLatency
+        ShowStatus "Testing DNS servers...", "testing"
+        TestAllDNSLatency
+        ShowStatus "WiFi Connected", "connected"
+        ShowFeedback "Ready! Best DNS server automatically detected.", "success"
+    Else
+        ShowStatus "No WiFi Found", "offline"
+        ShowFeedback "Please connect to WiFi to continue", "error"
+    End If
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub FindWiFiAdapter()
+    On Error Resume Next
+    Set shell = CreateObject("WScript.Shell")
+    
+    commonNames = Array("Wi-Fi", "WiFi", "Wireless Network Connection", "WLAN", "Wireless")
+    
+    For i = 0 To UBound(commonNames)
+        result = shell.Run("cmd /c netsh interface ipv4 show config name=""" & commonNames(i) & """ >nul 2>&1", 0, True)
+        If result = 0 Then
+            wifiAdapter = commonNames(i)
+            Exit Sub
+        End If
+    Next
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    tempFile = shell.ExpandEnvironmentStrings("%TEMP%") & "\adapters.txt"
+    
+    shell.Run "cmd /c netsh interface show interface | findstr /i ""wireless wifi wi-fi"" > """ & tempFile & """", 0, True
+    
+    If fso.FileExists(tempFile) Then
+        Set file = fso.OpenTextFile(tempFile, 1)
+        content = file.ReadAll
+        file.Close
+        fso.DeleteFile tempFile
+        
+        If Len(Trim(content)) > 0 Then
+            lines = Split(content, vbCrLf)
+            For Each line In lines
+                If Trim(line) <> "" Then
+                    parts = Split(Trim(line))
+                    If UBound(parts) >= 3 Then
+                        adapterName = Trim(parts(UBound(parts)))
+                        If adapterName <> "" Then
+                            wifiAdapter = adapterName
+                            Exit Sub
+                        End If
+                    End If
+                End If
+            Next
+        End If
+    End If
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub UpdateNetworkInfo()
+    On Error Resume Next
+    If wifiAdapter = "" Then Exit Sub
+    
+    Set shell = CreateObject("WScript.Shell")
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    tempFile = shell.ExpandEnvironmentStrings("%TEMP%") & "\ipconfig.txt"
+    
+    shell.Run "cmd /c ipconfig /all > """ & tempFile & """", 0, True
+    
+    If fso.FileExists(tempFile) Then
+        Set file = fso.OpenTextFile(tempFile, 1)
+        ipOutput = file.ReadAll
+        file.Close
+        fso.DeleteFile tempFile
+        
+        lines = Split(ipOutput, vbCrLf)
+        inWifiSection = False
+        
+        For i = 0 To UBound(lines)
+            line = Trim(lines(i))
+            
+            If InStr(LCase(line), LCase(wifiAdapter)) > 0 Then
+                inWifiSection = True
+            ElseIf line = "" Or (Left(line, 1) <> " " And InStr(line, ":") = 0) Then
+                inWifiSection = False
+            End If
+            
+            If inWifiSection Then
+                If InStr(line, "IPv4 Address") > 0 Then
+                    currentIP = Trim(Split(Split(line, ":")(1), "(")(0))
+                ElseIf InStr(line, "Default Gateway") > 0 Then
+                    gatewayIP = Trim(Split(line, ":")(1))
+                    If gatewayIP = "" And i < UBound(lines) Then
+                        gatewayIP = Trim(lines(i + 1))
+                    End If
+                End If
+            End If
+        Next
+    End If
+    
+    UpdateNetworkDisplay
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub TestNetworkLatency()
+    On Error Resume Next
+    Set shell = CreateObject("WScript.Shell")
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    tempFile = shell.ExpandEnvironmentStrings("%TEMP%") & "\ping_test.txt"
+    
+    testTarget = gatewayIP
+    If testTarget = "" Then testTarget = "8.8.8.8"
+    
+    shell.Run "cmd /c ping -n 1 -w 1000 " & testTarget & " > """ & tempFile & """", 0, True
+    
+    If fso.FileExists(tempFile) Then
+        Set file = fso.OpenTextFile(tempFile, 1)
+        pingOutput = file.ReadAll
+        file.Close
+        fso.DeleteFile tempFile
+        
+        lines = Split(pingOutput, vbCrLf)
+        For i = 0 To UBound(lines)
+            line = Trim(lines(i))
+            If InStr(line, "time=") > 0 And InStr(line, "ms") > 0 Then
+                startPos = InStr(line, "time=") + 5
+                endPos = InStr(startPos, line, "ms")
+                If endPos > startPos Then
+                    latencyStr = Mid(line, startPos, endPos - startPos)
+                    latencyStr = Replace(latencyStr, "<", "")
+                    If IsNumeric(latencyStr) Then
+                        networkLatency = CInt(latencyStr)
+                        Exit For
+                    End If
+                End If
+            End If
+        Next
+    End If
+    
+    UpdateNetworkDisplay
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub TestAllDNSLatency()
+    On Error Resume Next
+    dnsServers = Array("8.8.8.8", "1.1.1.1", "9.9.9.9", "208.67.222.222")
+    dnsNames = Array("Google", "Cloudflare", "Quad9", "OpenDNS")
+    
+    dnsLatencies.RemoveAll
+    bestLatency = 9999
+    fastestDNS = ""
+    
+    For i = 0 To UBound(dnsServers)
+        UpdateLatencyDisplay dnsNames(i), "Testing...", "testing"
+        latency = TestDNSLatency(dnsServers(i))
+        dnsLatencies.Add dnsNames(i), latency
+        
+        If latency < 999 Then
+            UpdateLatencyDisplay dnsNames(i), latency & "ms", GetLatencyClass(latency)
+        Else
+            UpdateLatencyDisplay dnsNames(i), "N/A", ""
+        End If
+        
+        If latency < bestLatency And latency > 0 And latency < 999 Then
+            bestLatency = latency
+            fastestDNS = dnsNames(i)
+        End If
+    Next
+    
+    MarkFastestDNS
+    
+    If fastestDNS <> "" Then
+        document.getElementById("smartBtn").innerHTML = "Apply Best DNS (" & fastestDNS & " - " & bestLatency & "ms)"
+        autoSelectComplete = True
+    Else
+        document.getElementById("smartBtn").innerHTML = "Apply Cloudflare DNS (Recommended)"
+        fastestDNS = "Cloudflare"
+        autoSelectComplete = True
+    End If
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Function TestDNSLatency(dnsServer)
+    On Error Resume Next
+    Set shell = CreateObject("WScript.Shell")
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    tempFile = shell.ExpandEnvironmentStrings("%TEMP%") & "\dns_test_" & Replace(dnsServer, ".", "_") & ".txt"
+    
+    startTime = Timer
+    result = shell.Run("cmd /c nslookup google.com " & dnsServer & " > """ & tempFile & """ 2>&1", 0, True)
+    endTime = Timer
+    
+    TestDNSLatency = 999
+    
+    If fso.FileExists(tempFile) Then
+        Set file = fso.OpenTextFile(tempFile, 1)
+        output = file.ReadAll
+        file.Close
+        fso.DeleteFile tempFile
+        
+        If result = 0 And InStr(output, "Address") > 0 And InStr(output, "can't find") = 0 Then
+            latency = Int((endTime - startTime) * 1000)
+            If latency > 0 And latency < 3000 Then
+                TestDNSLatency = latency
+            End If
+        End If
+    End If
+    
+    If Err.Number <> 0 Then
+        TestDNSLatency = 999
+        Err.Clear
+    End If
+    On Error GoTo 0
+End Function
+
+Sub UpdateLatencyDisplay(dnsName, latencyText, cssClass)
+    On Error Resume Next
+    Dim buttonId
+    Select Case dnsName
+        Case "Google"
+            buttonId = "btnGoogle"
+        Case "Cloudflare"
+            buttonId = "btnCloudflare"
+        Case "Quad9"
+            buttonId = "btnQuad9"
+        Case "OpenDNS"
+            buttonId = "btnOpenDNS"
+    End Select
+    
+    If buttonId <> "" Then
+        Set btn = document.getElementById(buttonId)
+        Set latencySpan = btn.querySelector(".latency-info")
+        If Not latencySpan Is Nothing Then
+            latencySpan.innerHTML = latencyText
+            latencySpan.className = "latency-info " & cssClass
+        End If
+    End If
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Function GetLatencyClass(latency)
+    If latency < 50 Then
+        GetLatencyClass = "excellent"
+    ElseIf latency < 100 Then
+        GetLatencyClass = "good"
+    Else
+        GetLatencyClass = "poor"
+    End If
+End Function
+
+Sub MarkFastestDNS()
+    On Error Resume Next
+    buttons = Array("btnGoogle", "btnCloudflare", "btnQuad9", "btnOpenDNS")
+    
+    For i = 0 To UBound(buttons)
+        Set btn = document.getElementById(buttons(i))
+        If Not btn Is Nothing Then
+            If InStr(btn.className, "fastest") > 0 Then
+                btn.className = Replace(btn.className, " fastest", "")
+                btn.className = Replace(btn.className, "fastest", "")
+            End If
+        End If
+    Next
+    
+    If fastestDNS <> "" Then
+        Dim fastestButtonId
+        Select Case fastestDNS
+            Case "Google"
+                fastestButtonId = "btnGoogle"
+            Case "Cloudflare"
+                fastestButtonId = "btnCloudflare"
+            Case "Quad9"
+                fastestButtonId = "btnQuad9"
+            Case "OpenDNS"
+                fastestButtonId = "btnOpenDNS"
+        End Select
+        
+        If fastestButtonId <> "" Then
+            Set btn = document.getElementById(fastestButtonId)
+            If Not btn Is Nothing Then
+                If InStr(btn.className, "fastest") = 0 Then
+                    btn.className = btn.className & " fastest"
+                End If
+            End If
+        End If
+    End If
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub UpdateNetworkDisplay()
+    On Error Resume Next
+    Set infoDiv = document.getElementById("networkInfo")
+    
+    infoHTML = "<div class='info-header'>NETWORK INFORMATION</div>"
+    infoHTML = infoHTML & "<div class='info-line'><span class='info-label'>WiFi Adapter:</span><span class='info-value'>" & wifiAdapter & "</span></div>"
+    
+    If currentIP <> "" Then
+        infoHTML = infoHTML & "<div class='info-line'><span class='info-label'>Local IP:</span><span class='info-value good'>" & currentIP & "</span></div>"
+    End If
+    
+    If gatewayIP <> "" Then
+        infoHTML = infoHTML & "<div class='info-line'><span class='info-label'>Gateway:</span><span class='info-value'>" & gatewayIP & "</span></div>"
+    End If
+    
+    If networkLatency > 0 Then
+        latencyClass = "excellent"
+        If networkLatency > 50 Then
+            latencyClass = "good"
+        ElseIf networkLatency > 100 Then
+            latencyClass = "warning"
+        ElseIf networkLatency > 200 Then
+            latencyClass = "error"
+        End If
+        infoHTML = infoHTML & "<div class='info-line'><span class='info-label'>Network Latency:</span><span class='info-value " & latencyClass & "'>" & networkLatency & "ms</span></div>"
+    End If
+    
+    If currentDNS <> "" Then
+        infoHTML = infoHTML & "<div class='info-line'><span class='info-label'>Current DNS:</span><span class='info-value warning'>" & currentDNS & "</span></div>"
+    End If
+    
+    infoDiv.innerHTML = infoHTML
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub ShowStatus(message, statusType)
+    On Error Resume Next
+    Set statusDiv = document.getElementById("statusIndicator")
+    statusDiv.innerHTML = "<div class='status-dot'></div>" & message
+    statusDiv.className = "status-indicator " & statusType
+    On Error GoTo 0
+End Sub
+
+Sub UpdateCurrentDNS()
+    On Error Resume Next
+    If wifiAdapter = "" Then Exit Sub
+    
+    Set shell = CreateObject("WScript.Shell")
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    tempFile = shell.ExpandEnvironmentStrings("%TEMP%") & "\dns_info.txt"
+    
+    shell.Run "cmd /c netsh interface ipv4 show dnsservers name=""" & wifiAdapter & """ > """ & tempFile & """", 0, True
+    
+    If fso.FileExists(tempFile) Then
+        Set file = fso.OpenTextFile(tempFile, 1)
+        dnsOutput = file.ReadAll
+        file.Close
+        fso.DeleteFile tempFile
+        
+        If InStr(LCase(dnsOutput), "dhcp") > 0 Then
+            currentDNS = "Automatic (DHCP)"
+        ElseIf InStr(dnsOutput, "8.8.8.8") > 0 Then
+            currentDNS = "Google DNS"
+        ElseIf InStr(dnsOutput, "1.1.1.1") > 0 Then
+            currentDNS = "Cloudflare DNS"
+        ElseIf InStr(dnsOutput, "9.9.9.9") > 0 Then
+            currentDNS = "Quad9 DNS"
+        ElseIf InStr(dnsOutput, "208.67.222.222") > 0 Then
+            currentDNS = "OpenDNS"
+        Else
+            currentDNS = "Custom DNS"
+        End If
+        
+        MarkActiveButton
+        UpdateNetworkDisplay
+    End If
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub MarkActiveButton()
+    On Error Resume Next
+    buttons = Array("btnAuto", "btnGoogle", "btnCloudflare", "btnQuad9", "btnOpenDNS")
+    
+    For i = 0 To UBound(buttons)
+        Set btn = document.getElementById(buttons(i))
+        If Not btn Is Nothing Then
+            isActive = False
+            
+            Select Case buttons(i)
+                Case "btnAuto"
+                    isActive = (InStr(currentDNS, "Automatic") > 0 Or InStr(currentDNS, "DHCP") > 0)
+                Case "btnGoogle"
+                    isActive = (InStr(currentDNS, "Google") > 0)
+                Case "btnCloudflare"
+                    isActive = (InStr(currentDNS, "Cloudflare") > 0)
+                Case "btnQuad9"
+                    isActive = (InStr(currentDNS, "Quad9") > 0)
+                Case "btnOpenDNS"
+                    isActive = (InStr(currentDNS, "OpenDNS") > 0)
+            End Select
+            
+            If isActive Then
+                If InStr(btn.className, "active") = 0 Then
+                    btn.className = btn.className & " active"
+                End If
+            Else
+                btn.className = Replace(btn.className, " active", "")
+                btn.className = Replace(btn.className, "active", "")
+            End If
+        End If
+    Next
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub ApplyBestDNS()
+    If isWorking Or wifiAdapter = "" Then Exit Sub
+    
+    On Error Resume Next
+    If Not autoSelectComplete Then
+        ShowFeedback "Still testing DNS servers, please wait...", "info"
+        Exit Sub
+    End If
+    
+    If fastestDNS = "" Then fastestDNS = "Cloudflare"
+    
+    Select Case fastestDNS
+        Case "Google"
+            ApplyDNS "8.8.8.8", "8.8.4.4", "Google DNS"
+        Case "Cloudflare"
+            ApplyDNS "1.1.1.1", "1.0.0.1", "Cloudflare DNS"
+        Case "Quad9"
+            ApplyDNS "9.9.9.9", "149.112.112.112", "Quad9 DNS"
+        Case "OpenDNS"
+            ApplyDNS "208.67.222.222", "208.67.220.220", "OpenDNS"
+    End Select
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub ApplyDNS(primary, secondary, dnsName)
+    If wifiAdapter = "" Or isWorking Then Exit Sub
+    
+    On Error Resume Next
+    isWorking = True
+    ShowStatus "Applying " & dnsName & "...", "testing"
+    
+    Set shell = CreateObject("WScript.Shell")
+    success = True
+    
+    If primary = "dhcp" Then
+        result = shell.Run("cmd /c netsh interface ipv4 set dns name=""" & wifiAdapter & """ source=dhcp", 0, True)
+        If result <> 0 Then success = False
+    Else
+        result1 = shell.Run("cmd /c netsh interface ipv4 set dns name=""" & wifiAdapter & """ static " & primary, 0, True)
+        If result1 <> 0 Then success = False
+        
+        If secondary <> "" And success Then
+            result2 = shell.Run("cmd /c netsh interface ipv4 add dns name=""" & wifiAdapter & """ " & secondary & " index=2", 0, True)
+        End If
+    End If
+    
+    shell.Run "cmd /c ipconfig /flushdns", 0, True
+    
+    isWorking = False
+    ShowStatus "WiFi Connected", "connected"
+    
+    If success Then
+        ShowFeedback dnsName & " applied successfully! Faster browsing enabled.", "success"
+    Else
+        ShowFeedback "Failed to apply " & dnsName & ". Check adapter name.", "error"
+    End If
+    
+    UpdateCurrentDNS
+    UpdateNetworkInfo
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub ShowFeedback(message, feedbackType)
+    On Error Resume Next
+    Set feedback = document.getElementById("feedbackMessage")
+    feedback.innerHTML = message
+    feedback.className = "feedback " & feedbackType
+    feedback.style.display = "block"
+    
+    window.setTimeout "HideFeedback", 4000
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub HideFeedback()
+    On Error Resume Next
+    document.getElementById("feedbackMessage").style.display = "none"
+    On Error GoTo 0
+End Sub
+
+Sub SetAuto()
+    ApplyDNS "dhcp", "", "Automatic DNS"
+End Sub
+
+Sub SetGoogle()
+    ApplyDNS "8.8.8.8", "8.8.4.4", "Google DNS"
+End Sub
+
+Sub SetCloudflare()
+    ApplyDNS "1.1.1.1", "1.0.0.1", "Cloudflare DNS"
+End Sub
+
+Sub SetQuad9()
+    ApplyDNS "9.9.9.9", "149.112.112.112", "Quad9 DNS"
+End Sub
+
+Sub SetOpenDNS()
+    ApplyDNS "208.67.222.222", "208.67.220.220", "OpenDNS"
+End Sub
+
+Sub FlushCache()
+    If isWorking Then Exit Sub
+    
+    On Error Resume Next
+    isWorking = True
+    ShowStatus "Clearing cache...", "testing"
+    
+    Set shell = CreateObject("WScript.Shell")
+    shell.Run "cmd /c ipconfig /flushdns", 0, True
+    
+    isWorking = False
+    ShowStatus "WiFi Connected", "connected"
+    ShowFeedback "DNS cache cleared successfully", "success"
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+Sub RefreshInfo()
+    If isWorking Then Exit Sub
+    
+    On Error Resume Next
+    ShowStatus "Refreshing and retesting...", "testing"
+    autoSelectComplete = False
+    UpdateNetworkInfo
+    UpdateCurrentDNS
+    TestNetworkLatency
+    TestAllDNSLatency
+    ShowStatus "WiFi Connected", "connected"
+    ShowFeedback "Network refreshed and DNS retested", "info"
+    
+    If Err.Number <> 0 Then Err.Clear
+    On Error GoTo 0
+End Sub
+
+</script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">DNS Switcher</div>
+            <div id="statusIndicator" class="status-indicator">Starting...</div>
+        </div>
+        
+        <div class="smart-section">
+            <button id="smartBtn" class="smart-button" onclick="ApplyBestDNS()">
+                Apply Best Low Latency DNS
+            </button>
+            <div class="smart-description">
+                Automatically tested and ready to apply the fastest DNS for your network
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div id="networkInfo" class="network-info">
+                <div class="info-header">NETWORK INFORMATION</div>
+                <div class="info-line">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value">Loading...</span>
+                </div>
+            </div>
+            
+            <div class="dns-section">
+                <div class="section-title">DNS Server Options</div>
+                <div class="dns-grid">
+                    <button id="btnAuto" class="dns-option" onclick="SetAuto()">
+                        <div class="dns-header">
+                            <span class="dns-name">Automatic (DHCP)</span>
+                            <span class="latency-info">Router</span>
+                        </div>
+                        <div class="dns-description">Uses your router's default DNS - may be slower</div>
+                    </button>
+                    
+                    <button id="btnGoogle" class="dns-option" onclick="SetGoogle()">
+                        <div class="dns-header">
+                            <span class="dns-name">Google DNS</span>
+                            <span class="latency-info">-</span>
+                        </div>
+                        <div class="dns-description">Reliable and fast - backed by Google's global network</div>
+                    </button>
+                    
+                    <button id="btnCloudflare" class="dns-option" onclick="SetCloudflare()">
+                        <div class="dns-header">
+                            <span class="dns-name">Cloudflare DNS</span>
+                            <span class="latency-info">-</span>
+                        </div>
+                        <div class="dns-description">Privacy-focused and fastest - blocks malware automatically</div>
+                    </button>
+                    
+                    <button id="btnQuad9" class="dns-option" onclick="SetQuad9()">
+                        <div class="dns-header">
+                            <span class="dns-name">Quad9 DNS</span>
+                            <span class="latency-info">-</span>
+                        </div>
+                        <div class="dns-description">Security-first - blocks malicious domains and phishing</div>
+                    </button>
+                    
+                    <button id="btnOpenDNS" class="dns-option" onclick="SetOpenDNS()">
+                        <div class="dns-header">
+                            <span class="dns-name">OpenDNS</span>
+                            <span class="latency-info">-</span>
+                        </div>
+                        <div class="dns-description">Content filtering available - good for families</div>
+                    </button>
+                </div>
+                
+                <div class="utility-section">
+                    <button class="utility-btn" onclick="FlushCache()">Clear DNS Cache</button>
+                    <button class="utility-btn" onclick="RefreshInfo()">Retest All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="feedbackMessage" class="feedback"></div>
+</body>
+</html>
